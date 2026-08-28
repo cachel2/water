@@ -15,7 +15,7 @@ that need a borrow checker.
 
 ## Status
 
-Pre-compiler. The spec is frozen (`spec/water-spec-v1.0.md`, v1.0); `waterc`
+Pre-compiler. The spec is frozen (v1.0, split per section in `spec/`); `waterc`
 does not exist yet. Nothing compiles. This is the honest state.
 
 The build order is fixed: lexer → parser → HIR → typechecker → MIR →
@@ -34,7 +34,7 @@ It declined to have them.
 
 ## What it looks like
 
-​```water
+```water
 fn max(a: i32, b: i32) -> i32 {
     if (a > b) { a } else { b }
 }
@@ -43,7 +43,7 @@ fn main() {
     let biggest = max(10, 42);
     io::print("{}", biggest);
 }
-​```
+```
 
 ## Not implemented (on purpose, forever)
 
