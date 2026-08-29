@@ -101,8 +101,9 @@ impl<'src> Lexer<'src> {
                 [b'"', ..] => return self.string_like(b'"', TokenKind::Str),
                 [b'\'', ..] => return self.string_like(b'\'', TokenKind::Byte),
                 [b'/', b'/', ..] => {
-                    let is_doc = self.rest().starts_with(b"///");
-                    let span = self.take_while(|b| b != b'\n');
+                    let is_doc =
+                        self.rest().starts_with(b"///") && !self.rest().starts_with(b"////");
+                    let span = self.take_while(|b| b != b'\n' && b != b'\r');
                     if is_doc {
                         return Token::new(TokenKind::DocComment, span);
                     }
@@ -258,5 +259,21 @@ mod tests {
     #[test]
     fn exponent_needs_digits() {
         assert_eq!(kinds("1e-"), vec![Int, Minus, Eof]);
+    }
+    #[test]
+    fn empty_comment() {
+        assert_eq!(kinds("//"), vec![Eof]);
+    }
+    #[test]
+    fn empty_doc_comment() {
+        assert_eq!(kinds("///"), vec![DocComment, Eof]);
+    }
+    #[test]
+    fn four_slashes_is_not_doc() {
+        assert_eq!(kinds("////"), vec![Eof]);
+    }
+    #[test]
+    fn crlf_line_ending() {
+        assert_eq!(kinds("/// hola\r\nx"), vec![DocComment, Ident, Eof]);
     }
 }
