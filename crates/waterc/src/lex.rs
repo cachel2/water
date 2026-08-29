@@ -218,11 +218,11 @@ mod tests {
     }
 
     #[test]
-    fn double_quote_n_simple() {
+    fn byte_literal() {
         assert_eq!(kinds(r#"'a'"#), vec![Byte, Eof]);
     }
     #[test]
-    fn double_quote_w_scape() {
+    fn escaped_quote() {
         assert_eq!(kinds(r#""a\"b""#), vec![Str, Eof]);
     }
     #[test]
