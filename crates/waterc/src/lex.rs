@@ -37,11 +37,27 @@ impl<'src> Lexer<'src> {
                     continue;
                 }
                 [b'a'..=b'z' | b'A'..=b'Z' | b'_', ..] => {
-                    let span = self.take_while(
-                        |b| matches!(b, b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' | b'_'),
-                    );
+                    let span = self.take_while(is_word);
                     let text = &self.src[span.start as usize..span.end as usize];
                     return Token::new(TokenKind::from_word(text), span);
+                }
+                [b'0'..=b'9', ..] => {
+                    let start = self.pos;
+                    self.take_while(is_word);
+                    let mut is_float = false;
+                    if matches!(self.rest(), [b'.', b'0'..=b'9', ..]) {
+                        self.pos += 1;
+                        self.take_while(is_word);
+                        is_float = true;
+                    }
+                    return Token::new(
+                        if is_float {
+                            TokenKind::Float
+                        } else {
+                            TokenKind::Int
+                        },
+                        Span::new(start, self.pos),
+                    );
                 }
                 [b'/', b'/', ..] => {
                     let is_doc = self.rest().starts_with(b"///");
@@ -64,6 +80,10 @@ impl<'src> Lexer<'src> {
         }
     }
 }
+fn is_word(b: u8) -> bool {
+    matches!(b, b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' | b'_')
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -138,5 +158,35 @@ mod tests {
     #[test]
     fn middle_comment() {
         assert_eq!(kinds("a // b\nc"), vec![Ident, Ident, Eof]);
+    }
+
+    #[test]
+    fn integer() {
+        assert_eq!(kinds("42"), vec![Int, Eof]);
+    }
+
+    #[test]
+    fn float() {
+        assert_eq!(kinds("3.14"), vec![Float, Eof]);
+    }
+
+    #[test]
+    fn hex() {
+        assert_eq!(kinds("0xFF"), vec![Int, Eof]);
+    }
+
+    #[test]
+    fn underscores() {
+        assert_eq!(kinds("1_000"), vec![Int, Eof]);
+    }
+
+    #[test]
+    fn range_not_float() {
+        assert_eq!(kinds("1..10"), vec![Int, DotDot, Int, Eof]);
+    }
+
+    #[test]
+    fn trailing_dot() {
+        assert_eq!(kinds("1."), vec![Int, Dot, Eof]);
     }
 }
