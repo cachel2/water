@@ -16,7 +16,17 @@ impl<'src> Lexer<'src> {
             pos: 0,
         }
     }
-
+    pub fn tokenize(mut self) -> Vec<Token> {
+        let mut out = Vec::with_capacity(self.src.len() / 4);
+        loop {
+            let token = self.next_token();
+            out.push(token);
+            if token.kind == TokenKind::Eof {
+                break;
+            }
+        }
+        out
+    }
     fn rest(&self) -> &[u8] {
         &self.bytes[self.pos as usize..]
     }
@@ -121,16 +131,7 @@ mod tests {
     use TokenKind::*;
 
     fn kinds(src: &str) -> Vec<TokenKind> {
-        let mut lexer = Lexer::new(src);
-        let mut out = Vec::new();
-        loop {
-            let kind = lexer.next_token().kind;
-            out.push(kind);
-            if kind == Eof {
-                break;
-            }
-        }
-        out
+        Lexer::new(src).tokenize().iter().map(|t| t.kind).collect()
     }
 
     #[test]
