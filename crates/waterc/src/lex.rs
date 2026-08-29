@@ -43,6 +43,14 @@ impl<'src> Lexer<'src> {
                     let text = &self.src[span.start as usize..span.end as usize];
                     return Token::new(TokenKind::from_word(text), span);
                 }
+                [b'/', b'/', ..] => {
+                    let is_doc = self.rest().starts_with(b"///");
+                    let span = self.take_while(|b| b != b'\n');
+                    if is_doc {
+                        return Token::new(TokenKind::DocComment, span);
+                    }
+                    continue;
+                }
                 [_, ..] => {
                     let start = self.pos;
                     if let Some((kind, len)) = TokenKind::from_punct(self.rest()) {
@@ -117,5 +125,18 @@ mod tests {
             out,
             vec![Span::new(0, 3), Span::new(4, 5), Span::new(5, 5),]
         );
+    }
+    #[test]
+    fn comment() {
+        assert_eq!(kinds("// hola"), vec![Eof]);
+    }
+    #[test]
+    fn doc_comment() {
+        assert_eq!(kinds("/// hola"), vec![DocComment, Eof]);
+    }
+
+    #[test]
+    fn middle_comment() {
+        assert_eq!(kinds("a // b\nc"), vec![Ident, Ident, Eof]);
     }
 }
