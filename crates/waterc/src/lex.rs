@@ -20,7 +20,27 @@ impl<'src> Lexer<'src> {
     fn rest(&self) -> &[u8] {
         &self.bytes[self.pos as usize..]
     }
-
+    fn string_like(&mut self, quote: u8, kind: TokenKind) -> Token {
+        let start = self.pos;
+        self.pos += 1;
+        loop {
+            match self.rest() {
+                [] => {
+                    return Token::new(TokenKind::Error, Span::new(start, self.pos));
+                }
+                [b'\\', _, ..] => {
+                    self.pos += 2;
+                }
+                [_, ..] => {
+                    let b = self.rest()[0];
+                    self.pos += 1;
+                    if b == quote {
+                        return Token::new(kind, Span::new(start, self.pos));
+                    }
+                }
+            }
+        }
+    }
     fn take_while(&mut self, f: impl Fn(u8) -> bool) -> Span {
         let start = self.pos;
         while self.rest().first().is_some_and(|&byte| f(byte)) {
@@ -59,6 +79,8 @@ impl<'src> Lexer<'src> {
                         Span::new(start, self.pos),
                     );
                 }
+                [b'"', ..] => return self.string_like(b'"', TokenKind::Str),
+                [b'\'', ..] => return self.string_like(b'\'', TokenKind::Byte),
                 [b'/', b'/', ..] => {
                     let is_doc = self.rest().starts_with(b"///");
                     let span = self.take_while(|b| b != b'\n');
@@ -188,5 +210,23 @@ mod tests {
     #[test]
     fn trailing_dot() {
         assert_eq!(kinds("1."), vec![Int, Dot, Eof]);
+    }
+
+    #[test]
+    fn double_quote() {
+        assert_eq!(kinds(r#""hola""#), vec![Str, Eof]);
+    }
+
+    #[test]
+    fn double_quote_n_simple() {
+        assert_eq!(kinds(r#"'a'"#), vec![Byte, Eof]);
+    }
+    #[test]
+    fn double_quote_w_scape() {
+        assert_eq!(kinds(r#""a\"b""#), vec![Str, Eof]);
+    }
+    #[test]
+    fn no_closing_quote() {
+        assert_eq!(kinds(r#""I forgot"#), vec![Error, Eof]);
     }
 }
