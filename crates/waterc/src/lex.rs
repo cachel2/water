@@ -63,9 +63,18 @@ impl<'src> Lexer<'src> {
                 }
                 [b'0'..=b'9', ..] => {
                     let start = self.pos;
+                    let is_hex = matches!(self.rest(), [b'0', b'x' | b'X', ..]);
                     self.take_while(is_word);
                     let mut is_float = false;
                     if matches!(self.rest(), [b'.', b'0'..=b'9', ..]) {
+                        self.pos += 1;
+                        self.take_while(is_word);
+                        is_float = true;
+                    }
+                    if !is_hex
+                        && matches!(self.bytes[self.pos as usize - 1], b'e' | b'E')
+                        && matches!(self.rest(), [b'+' | b'-', b'0'..=b'9', ..])
+                    {
                         self.pos += 1;
                         self.take_while(is_word);
                         is_float = true;
@@ -228,5 +237,25 @@ mod tests {
     #[test]
     fn no_closing_quote() {
         assert_eq!(kinds(r#""I forgot"#), vec![Error, Eof]);
+    }
+    #[test]
+    fn exponent_plus() {
+        assert_eq!(kinds("1e+9"), vec![Float, Eof]);
+    }
+    #[test]
+    fn exponent_minus() {
+        assert_eq!(kinds("1e-9"), vec![Float, Eof]);
+    }
+    #[test]
+    fn exponent_after_point() {
+        assert_eq!(kinds("1.5e10"), vec![Float, Eof]);
+    }
+    #[test]
+    fn hex_e_is_not_exponent() {
+        assert_eq!(kinds("0xe-1"), vec![Int, Minus, Int, Eof]);
+    }
+    #[test]
+    fn exponent_needs_digits() {
+        assert_eq!(kinds("1e-"), vec![Int, Minus, Eof]);
     }
 }
