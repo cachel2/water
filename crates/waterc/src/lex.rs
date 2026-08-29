@@ -1,3 +1,4 @@
+//! The vocabulary of water (§2).
 use crate::span::Span;
 use crate::token::{Token, TokenKind};
 
@@ -8,6 +9,9 @@ pub struct Lexer<'src> {
 }
 
 impl<'src> Lexer<'src> {
+    /// This might move to the SourceMap asap it exists,
+    /// this is just an aprox, the `u32::MAX` must apply to
+    /// the sum of all source.
     pub fn new(src: &'src str) -> Lexer<'src> {
         assert!(src.len() <= u32::MAX as usize, "source too large");
         Lexer {
