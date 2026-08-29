@@ -1,0 +1,121 @@
+use crate::span::Span;
+use crate::token::{Token, TokenKind};
+
+pub struct Lexer<'src> {
+    src: &'src str,
+    bytes: &'src [u8],
+    pos: u32,
+}
+
+impl<'src> Lexer<'src> {
+    pub fn new(src: &'src str) -> Lexer<'src> {
+        assert!(src.len() <= u32::MAX as usize, "source too large");
+        Lexer {
+            src,
+            bytes: src.as_bytes(),
+            pos: 0,
+        }
+    }
+
+    fn rest(&self) -> &[u8] {
+        &self.bytes[self.pos as usize..]
+    }
+
+    fn take_while(&mut self, f: impl Fn(u8) -> bool) -> Span {
+        let start = self.pos;
+        while self.rest().first().is_some_and(|&byte| f(byte)) {
+            self.pos += 1;
+        }
+        Span::new(start, self.pos)
+    }
+    pub fn next_token(&mut self) -> Token {
+        loop {
+            match self.rest() {
+                [] => return Token::new(TokenKind::Eof, Span::new(self.pos, self.pos)),
+                [b' ' | b'\t' | b'\n' | b'\r', ..] => {
+                    self.take_while(|b| matches!(b, b' ' | b'\t' | b'\n' | b'\r'));
+                    continue;
+                }
+                [b'a'..=b'z' | b'A'..=b'Z' | b'_', ..] => {
+                    let span = self.take_while(
+                        |b| matches!(b, b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' | b'_'),
+                    );
+                    let text = &self.src[span.start as usize..span.end as usize];
+                    return Token::new(TokenKind::from_word(text), span);
+                }
+                [_, ..] => {
+                    let start = self.pos;
+                    if let Some((kind, len)) = TokenKind::from_punct(self.rest()) {
+                        self.pos += len;
+                        return Token::new(kind, Span::new(start, self.pos));
+                    }
+                    self.pos += 1;
+                    return Token::new(TokenKind::Error, Span::new(start, self.pos));
+                }
+            }
+        }
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use TokenKind::*;
+
+    fn kinds(src: &str) -> Vec<TokenKind> {
+        let mut lexer = Lexer::new(src);
+        let mut out = Vec::new();
+        loop {
+            let kind = lexer.next_token().kind;
+            out.push(kind);
+            if kind == Eof {
+                break;
+            }
+        }
+        out
+    }
+
+    #[test]
+    fn empty_input() {
+        assert_eq!(kinds(""), vec![Eof]);
+    }
+
+    #[test]
+    fn only_whitespace() {
+        assert_eq!(kinds("   "), vec![Eof]);
+    }
+
+    #[test]
+    fn simple_let() {
+        assert_eq!(kinds("let x"), vec![Let, Ident, Eof]);
+    }
+
+    #[test]
+    fn symbols() {
+        assert_eq!(kinds("+ - ( )"), vec![Plus, Minus, LParen, RParen, Eof]);
+    }
+
+    #[test]
+    fn error() {
+        assert_eq!(kinds("@"), vec![Error, Eof]);
+    }
+
+    #[test]
+    fn spans() {
+        let mut lexer = Lexer::new("let x");
+        let mut out = Vec::new();
+
+        loop {
+            let token = lexer.next_token();
+            out.push(token.span);
+
+            if token.kind == Eof {
+                break;
+            }
+        }
+
+        assert_eq!(
+            out,
+            vec![Span::new(0, 3), Span::new(4, 5), Span::new(5, 5),]
+        );
+    }
+}
