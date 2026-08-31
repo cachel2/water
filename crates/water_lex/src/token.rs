@@ -4,7 +4,7 @@
 //! The two tables that turn source bytes into a kind — words and punctuation —
 //! live here too, so the lexer only has to decide *which* table to consult.
 
-use crate::span::Span;
+use water_diag::Span;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Token {

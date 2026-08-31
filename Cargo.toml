@@ -9,6 +9,11 @@ authors = ["Axel Ibarrondo"]
 license = "GPL-3.0-or-later"
 repository = "https://github.com/cachel2/water"
 
+[workspace.dependencies]
+water_diag = { path = "crates/water_diag" }
+water_lex = { path = "crates/water_lex" }
+water_parse = { path = "crates/water_parse" }
+
 [workspace.lints.clippy]
 all = { level = "warn", priority = -1 }
 

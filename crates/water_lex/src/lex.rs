@@ -1,5 +1,5 @@
 //! The vocabulary of water (§2).
-use crate::span::Span;
+use water_diag::Span;
 use crate::token::{Token, TokenKind};
 
 pub struct Lexer<'src> {
