@@ -1,4 +1,4 @@
-use water_diag::span::Span;
+use water_diag::Span;
 use water_lex::{
     lex::Lexer,
     token::{Token, TokenKind},
@@ -78,7 +78,7 @@ impl<'src> Parser<'src> {
 
 #[cfg(test)]
 mod tests {
-    use water_diag::span::Span;
+    use water_diag::Span;
 
     use super::*;
     use TokenKind::*;

@@ -1,4 +1,4 @@
-use water_diag::span::Span;
+use water_diag::Span;
 use water_lex::token::TokenKind;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
