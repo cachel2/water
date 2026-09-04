@@ -1,4 +1,4 @@
-use water_diag::Span;
+use water_diag::{Bag, Span};
 use water_lex::{
     lex::Lexer,
     token::{Token, TokenKind},
@@ -9,19 +9,21 @@ use crate::ast::{BinOp, Expr, ExprKind};
 /// Important distinction, `Vec<Token>` always contains the
 /// Eof inside and pos is never greater than the index of Eof,
 /// That's why we can index.
-pub struct Parser<'src> {
+pub struct Parser<'src, 'bag> {
     tokens: Vec<Token>,
     src: &'src str,
     pos: usize,
+    bag: &'bag mut Bag,
 }
 
-impl<'src> Parser<'src> {
-    pub fn new(src: &'src str) -> Self {
+impl<'src, 'bag> Parser<'src, 'bag> {
+    pub fn new(src: &'src str, bag: &'bag mut Bag) -> Self {
         let tokens = Lexer::new(src).tokenize();
         Parser {
             tokens,
             src,
             pos: 0,
+            bag,
         }
     }
     fn bump(&mut self) -> Token {
@@ -84,18 +86,21 @@ mod tests {
     use TokenKind::*;
 
     fn dump(src: &str) -> String {
-        Parser::new(src).expr(0).dump(src)
+        let mut bag = Bag::new();
+        Parser::new(src, &mut bag).expr(0).dump(src)
     }
 
     #[test]
     fn peek_at_eof() {
-        let parser = Parser::new("");
+        let mut bag = Bag::new();
+        let parser = Parser::new("", &mut bag);
         assert_eq!((parser.peek()), Eof);
     }
 
     #[test]
     fn bump_clamps_at_eof() {
-        let mut parser = Parser::new("");
+        let mut bag = Bag::new();
+        let mut parser = Parser::new("", &mut bag);
         for _ in 0..10 {
             assert_eq!((parser.bump()), Token::new(Eof, Span::new(0, 0)));
         }
@@ -103,7 +108,8 @@ mod tests {
 
     #[test]
     fn bump_advances() {
-        let mut parser = Parser::new("let x");
+        let mut bag = Bag::new();
+        let mut parser = Parser::new("let x", &mut bag);
 
         assert_eq!((parser.bump()), Token::new(Let, Span::new(0, 3)));
         assert_eq!((parser.bump()), Token::new(Ident, Span::new(4, 5)));
@@ -112,7 +118,8 @@ mod tests {
 
     #[test]
     fn eat_does_not_advance_on_mismatch() {
-        let mut parser = Parser::new("let x");
+        let mut bag = Bag::new();
+        let mut parser = Parser::new("let x", &mut bag);
         assert_eq!(parser.eat(Ident), None);
         assert_eq!(parser.pos, 0);
     }

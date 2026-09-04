@@ -14,6 +14,7 @@ pub enum ExprKind {
         lhs: Box<Expr>,
         rhs: Box<Expr>,
     },
+    Error,
 }
 #[derive(Debug, PartialEq)]
 pub struct Expr {
@@ -50,6 +51,7 @@ impl Expr {
             ExprKind::Binary { op, lhs, rhs } => {
                 format!("({} {} {})", op, lhs.dump(src), rhs.dump(src))
             }
+            ExprKind::Error => "<error>".to_string(),
         }
     }
 }
